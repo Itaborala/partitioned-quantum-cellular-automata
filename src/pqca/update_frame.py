@@ -2,7 +2,7 @@
 
 from typing import List
 from qiskit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit, QuantumRegister
+from qiskit.circuit import Qubit, QuantumRegister
 from .tessellation import Tessellation
 from .exceptions import (CircuitWrongShapeForCell)
 
