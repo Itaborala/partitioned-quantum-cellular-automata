@@ -5,6 +5,7 @@ from qiskit import QuantumCircuit
 import qiskit
 import qiskit.circuit
 from .update_frame import UpdateFrame
+from typing import Iterable
 
 
 class Automaton:
@@ -101,9 +102,49 @@ def _pattern_preparation_circuit(pattern: List[int]) -> qiskit.QuantumCircuit:
     return circuit
 
 
+class PUQCA:
+    "Full implementation of a Partitioned Unitary Quantum Cellular Automaton, with unitary time evolution"
+
+    def __init__(self, initial_state: List[int], frames: List[UpdateFrame]):
+
+        self.initial_state = initial_state
+        self.frames = frames
+
+        size = len(initial_state)
+        self._step_circuit = QuantumCircuit(size)
+        for frame in self.frames:
+            for instruction, qargs, cargs in frame.full_circuit_instructions:
+                self._step_circuit.append(instruction, qargs, cargs)
+
+        self.update_circuit = self._step_circuit
+
+    def build_circuits(self, time_steps: Iterable[int], measure: bool = True) -> List[QuantumCircuit]:
+
+        order = list(time_steps)
+        if any(t < 0 for t in order):
+            raise ValueError("time_steps must be non-negative")
+
+        sorted_unique = sorted(set(order))
+        prep = _pattern_preparation_circuit(self.initial_state)
+
+        cache = {}
+        running = prep.copy()
+        prev_t = 0
+        for t in sorted_unique:
+            for _ in range(t - prev_t):
+                running.compose(self._step_circuit, inplace=True)
+            snap = running.copy()
+            if measure:
+                snap.measure_all()
+            cache[t] = snap
+            prev_t = t
+
+        return [cache[t] for t in order]
+
 """
 The MIT License (MIT)
 
+Copyright (c) 2026 Paulo Itaborai
 Copyright (c) 2021 Hector Miller-Bakewell
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

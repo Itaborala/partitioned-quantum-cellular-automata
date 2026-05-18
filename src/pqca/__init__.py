@@ -1,7 +1,7 @@
 """Partitioned Quantum Cellular Automata."""
 
 from .update_frame import UpdateFrame
-from .automaton import Automaton
+from .automaton import Automaton, PUQCA
 from . import backend
 from . import tessellation
 
