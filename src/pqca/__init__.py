@@ -1,9 +1,28 @@
 """Partitioned Quantum Cellular Automata."""
 
 from .update_frame import UpdateFrame
-from .automaton import Automaton, PUQCA
+from .automaton import Automaton
+from .evolution import BatchedEvolutionPQCA
+from .modes import PQCAMode, LegacyPQCA, MarkovianPQCA, MarginalPQCA, UnitaryPQCA
+from . import modes
 from . import backend
 from . import tessellation
+
+
+__all__ = [
+    "UpdateFrame",
+    "Automaton",
+    "BatchedEvolutionPQCA",
+    "PQCAMode",
+    "LegacyPQCA",
+    "MarkovianPQCA",
+    "MarginalPQCA",
+    "UnitaryPQCA",
+    "modes",
+    "backend",
+    "tessellation",
+]
+
 
 
 """

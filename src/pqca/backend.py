@@ -1,15 +1,27 @@
 """Expose ways of evaluating circuits."""
 
 from typing import List, Callable
-import qiskit as qskt
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
 from qiskit_ibm_runtime import SamplerV2 as Sampler, QiskitRuntimeService, IBMBackend
 from qiskit_ibm_runtime.fake_provider import FakeFez
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from . import exceptions
 
+def statevector_backend(circuit: QuantumCircuit, shots: int) -> List[str]:
+    """Basic builtin backend adapter for pqca>=3.0.0, sampling from the statevector directly.
 
-def qiskit(backend: IBMBackend = FakeFez()) -> Callable[[qskt.QuantumCircuit], List[int]]:
-    """Transform a qiskit backend into a backend suitable for an Automaton.
+    Custom backends can be used by implementing a function with the same signature and passing it to the Automaton constructor. 
+    Please refer to the documentation for more details and instructions on how to implement custom backends.
+    """
+    bare_circuit = circuit.remove_final_measurements(inplace=False) or circuit
+    return Statevector.from_instruction(bare_circuit).sample_memory(shots)
+
+def qiskit(backend: IBMBackend = FakeFez()) -> Callable[[QuantumCircuit], List[int]]:
+    """Legacy backend format for backwards compatibility with pqca<=2.0.0
+
+    Use the Legacy mode on pqca>3.0.0 to use it. Refer to the migration guide in the documentation.
+
+    Transform a qiskit backend into a backend suitable for an Automaton in Legacy Mode.
 
     Args:
         backend (qisket backend, optional): A qiskit backend. Defaults to Aer.
@@ -18,9 +30,17 @@ def qiskit(backend: IBMBackend = FakeFez()) -> Callable[[qskt.QuantumCircuit], L
         exceptions.BackendError: Any non-successful result will be raised as an exception.
 
     Returns:
-        Callable[[qskt.QuantumCircuit], List[int]]: A function that evaluates a given circuit, returning the list of classical bits.
+        Callable[[QuantumCircuit], List[int]]: A function that evaluates a given circuit, returning the list of classical bits.
     """
-    def run_circuit_on_backend(circuit: qskt.QuantumCircuit) -> List[int]:
+
+    from qiskit_ibm_runtime import SamplerV2 as Sampler
+    from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+    if backend in None:
+        from qiskit_ibm_runtime.fake_provider import FakeManilaV2
+        backend = FakeManilaV2()
+
+    def run_circuit_on_backend(circuit: QuantumCircuit) -> List[int]:
         circuit.measure_all()
         sampler = Sampler(mode=backend)
         pm = generate_preset_pass_manager(

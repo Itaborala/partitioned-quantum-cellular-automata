@@ -2,9 +2,11 @@
 
 from typing import List, Callable
 from qiskit import QuantumCircuit
-import qiskit
-import qiskit.circuit
+from qiskit.circuit import Instruction
+#import qiskit
 from .update_frame import UpdateFrame
+from .modes import PQCAMode, UnitaryPQCA
+from .backend import statevector_backend
 from typing import Iterable
 
 
@@ -20,14 +22,15 @@ class Automaton:
     The evaluation of the circuit is performed by the supplied backend.
     """
 
-    state: List[int]
+    #state: List[int]
     frames: List[UpdateFrame]
-    backend: Callable[[QuantumCircuit], List[int]]
-    update_instruction: List[qiskit.circuit.Instruction]
+    mode: PQCAMode
+    backend: Callable
+    update_instruction: List[Instruction]
     update_circuit: QuantumCircuit
 
     def __init__(self, initial_state: List[int],
-                 frames: List[UpdateFrame], backend: Callable[[QuantumCircuit], List[int]]):
+                 frames: List[UpdateFrame], backend: Callable = None, *, mode: PQCAMode = None):
         """Automaton with a given initial state, update frames, and backend.
 
         Use `next(automaton)` to advance and return the new state.
@@ -39,7 +42,15 @@ class Automaton:
                 quantum circuit once and returns the resulting list of classical bits.
         """
         self.frames = frames
-        self.backend = backend
+        self.mode = mode or UnitaryPQCA()
+        if backend is not None:
+            self.backend = backend
+        elif self.mode.legacy_backend:
+            from .backend import qiskit as _legacy_backend
+            self.backend = _legacy_backend()
+        else:
+            self.backend = statevector_backend
+
         frame_instructions = map(
             lambda f: f.full_circuit_instructions, self.frames)
         self.update_instruction = [instruction
@@ -48,27 +59,37 @@ class Automaton:
 
         size = len(initial_state)
 
-        self.state = initial_state
+        #self.state = initial_state
+        self._carrier = self.mode.init_carrier(initial_state)
+        self._emitted = list(initial_state)
 
         self.update_circuit = QuantumCircuit(size)
         for instruction, qargs, cargs in self.update_instruction:
             self.update_circuit.append(instruction, qargs, cargs)
 
     @property
-    def preparation_circuit(self) -> qiskit.QuantumCircuit:
+    def state(self) -> List[int]:
+        """Return the most recently emitted state sample."""
+        return self._emitted
+
+
+
+    @property
+    def preparation_circuit(self) -> QuantumCircuit:
         """Circuit for preparing a register of qubits into the current state."""
         return _pattern_preparation_circuit(self.state)
 
     @property
-    def combined_circuit(self) -> qiskit.QuantumCircuit:
+    def combined_circuit(self) -> QuantumCircuit:
         """Combine preparation and update circuit."""
         return self.preparation_circuit.compose(self.update_circuit)
 
     def _tick(self) -> None:
         """Update the state without returning anything."""
         assert self.backend, "Backend not yet assigned"
-        next_pattern = self.backend(self.combined_circuit)
-        self.state = next_pattern
+        self._carrier, self._emitted = self.mode.advance(self._carrier, self.update_circuit, self.backend)
+        #next_pattern = self.backend(self.combined_circuit)
+        #self.state = next_pattern
 
     def __next__(self) -> List[int]:
         """Yield the next state after applying the update circuit.
@@ -77,22 +98,25 @@ class Automaton:
             List[int]: The new state of the Automaton
         """
         self._tick()
-        return self.state
+        return self._emitted
 
     def __str__(self) -> str:
         """Represent as string."""
         frame_string = f"[{','.join([str(frame) for frame in self.frames])}]"
-        return f"PQCA(state={self.state}, frames={frame_string})"
+        return f"PQCA(state={self._emitted}, frames={frame_string})"
+
+    def __iter__(self):
+        return self
 
 
-def _pattern_preparation_circuit(pattern: List[int]) -> qiskit.QuantumCircuit:
+def _pattern_preparation_circuit(pattern: List[int]) -> QuantumCircuit:
     """Create a circuit that encodes the given classical state.
 
     Args:
         pattern (List[int]): A list of 0s and 1s.
 
     Returns:
-        qiskit.QuantumCircuit: A circuit that encodes the given classical bits as
+        QuantumCircuit: A circuit that encodes the given classical bits as
             the tensor product of 0 and 1 states.
     """
     circuit = QuantumCircuit(len(pattern))
