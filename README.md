@@ -1,3 +1,5 @@
+# TODO - Update Python Tests, refine documentation and docstrings
+
 # PQCA (Partitioned Quantum Cellular Automata)
 
 A quantum cellular automaton iteratively applies some update circuit to some initial state.
