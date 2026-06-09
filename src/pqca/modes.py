@@ -132,7 +132,7 @@ class UnitaryPQCA(PQCAMode):
     """
 
     def init_carrier(self, initial_state):
-        label = "".join(str(bit) for bit in reversed(initial_state))
+        label = "".join(str(int(bit)) for bit in reversed(initial_state))
         return Statevector.from_label(label)
 
     def advance(self, carrier, update_circuit, backend):

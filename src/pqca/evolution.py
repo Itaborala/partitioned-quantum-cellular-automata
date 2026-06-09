@@ -31,7 +31,7 @@ class BatchedEvolutionPQCA:
         self._iter = None
 
 
-        def build_circuits(self, time_steps: Iterable[int], measure: bool = True) -> List[QuantumCircuit]:
+    def build_circuits(self, time_steps: Iterable[int], measure: bool = True) -> List[QuantumCircuit]:
 
 
         order = list(time_steps)
@@ -65,7 +65,9 @@ class BatchedEvolutionPQCA:
         self._order = list(time_steps)
         circuits = self.build_circuits(self._order, measure=True)
 
-        self._memory = { t: self.backend(circuit, shots=self.shots) for t, circuit in zip(self._order, circuits) }
+        results = self.backend(circuits, shots=self.shots)
+        self._memory = { t: results[i] for i, t in enumerate(self._order) }
+        #self._memory = { t: self.backend(circuit, shots=self.shots) for t, circuit in zip(self._order, circuits) }
         self._iter = iter(self._order)
 
         return self
