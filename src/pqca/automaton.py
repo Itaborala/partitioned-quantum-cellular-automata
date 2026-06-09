@@ -168,7 +168,6 @@ class PUQCA:
 """
 The MIT License (MIT)
 
-Copyright (c) 2026 Paulo Itaborai
 Copyright (c) 2021 Hector Miller-Bakewell
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

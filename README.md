@@ -1,3 +1,5 @@
+# TODO - Update Python Tests, refine documentation and docstrings
+
 # PQCA (Partitioned Quantum Cellular Automata)
 
 A quantum cellular automaton iteratively applies some update circuit to some initial state.
@@ -72,7 +74,7 @@ each step. Every mode emits a list of 0s and 1s from `next(...)`.
 | Mode | Carried between steps | Behaviour |
 | --- | --- | --- |
 | `Unitary` (default) | the full statevector | Evolves the statevector directly; the emitted bits are a sample that does not disturb the carried state. |
-| `Markovian` | one measured bitstring | Measure-and-restart. Each step collapses to a single result, giving a classical Markov chain. |
+| `Markovian` | one measured bitstring | Measure-and-restart. Each step collapses to a single result, giving a classical-quantum Markov chain. |
 | `Marginal` | per-qubit probabilities | Re-prepares a product state matching the per-qubit statistics each step. Discards phase and correlations. |
 | `Legacy` | one measured bitstring | The exact pre-v3 behaviour, kept for reproducing old runs. Uses the old backend. |
 
@@ -80,7 +82,7 @@ each step. Every mode emits a list of 0s and 1s from `next(...)`.
 # The default mode, shown here explicitly
 pqca.Automaton(initial_state, [update_1, update_2], mode=pqca.Unitary())
 
-# Classical Markov-chain behaviour
+# Classical-Quantum Markov-chain behaviour
 pqca.Automaton(initial_state, [update_1, update_2], mode=pqca.Markovian())
 
 # Product-state approximation, averaged over several shots
