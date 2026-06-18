@@ -60,27 +60,46 @@ class BatchedEvolutionPQCA:
 
 
 
-    def run(self, time_steps: Iterable[int]):
+    def ingest(self, time_steps, memory):
+        """Loads pre-computed then becomes iterable and emits one sampled bitstring per stored step."""
 
         self._order = list(time_steps)
-        circuits = self.build_circuits(self._order, measure=True)
-
-        results = self.backend(circuits, shots=self.shots)
-        self._memory = { t: results[i] for i, t in enumerate(self._order) }
-        #self._memory = { t: self.backend(circuit, shots=self.shots) for t, circuit in zip(self._order, circuits) }
+        if len(memory) != len(self._order):
+            raise ValueError("Length of memory must match length of time_steps.")
+        self._memory = dict(zip(self._order, memory))
         self._iter = iter(self._order)
 
         return self
 
+
+
+
+    def run(self, time_steps: Iterable[int]):
+        """Synchronous execution of all circuits for the given time steps, then becomes iterable and emits one sampled bitstring per stored step."""
+
+        self._order = list(time_steps)
+        circuits = self.build_circuits(self._order, measure=True)
+
+
+        results = self.backend(circuits, shots=self.shots)
+        return self.ingest(self._order, results)
+        #self._memory = { t: results[i] for i, t in enumerate(self._order) }
+        #self._memory = { t: self.backend(circuit, shots=self.shots) for t, circuit in zip(self._order, circuits) }
+        #self._iter = iter(self._order)
+
+        #return self
+
     def __iter__(self):
 
+        self._iter = iter(self._order)
         return self
 
     def __next__(self) -> List[int]:
         """Emits one sampled bitstring per stored step."""
 
-        if self._iter is None:
-            raise RuntimeError("Must call run() before iterating.")
+        if self._memory is None:
+            raise RuntimeError("Must call run() or ingest() before iterating.")
+        
 
         t = next(self._iter)
         return _bits(random.choice(self._memory[t]))

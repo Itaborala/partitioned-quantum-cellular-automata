@@ -46,8 +46,8 @@ def _real_product_state_circuit(marginals: List[float]) -> QuantumCircuit:
     """
     circuit = QuantumCircuit(len(marginals))
     for (qubit, p1) in list(enumerate(marginals)):
-        if marginal > 0:
-            theta = 2 * math.acos(math.sqrt(1 - marginal))
+        if p1 > 0:
+            theta = 2 * math.acos(math.sqrt(1 - p1))
             circuit.ry(theta, qubit)
 
     return circuit
@@ -84,7 +84,7 @@ class LegacyPQCA(PQCAMode):
 
 class MarkovianPQCA(PQCAMode):
     """ An execution mode for running Measurement Quantum Cellular Automata routines.
-    Fully destructive measurement-and-reset after each iteration, carrying the latest measured bitstring ad feedback.
+    Fully destructive measurement-and-reset after each iteration, carrying the latest measured bitstring as feedback.
     bitstrinc gis both the emitted output andthe entire state carried forward. 
     Reduces the multi-step dynamics to a quantum-evaluated Markov chain.
     Performs the same function as the LegacyPQCAMode for pqca>=3.0.0, but with a different backend interface.
@@ -116,7 +116,7 @@ class MarginalPQCA(PQCAMode):
         memory = backend(circuit, self.shots)
         marginals = [
             sum(_bits(shot)[i] for shot in memory) / self.shots
-            for i in range(self.shots)
+            for i in range(len(carrier))
         ]
         emitted = _bits(random.choice(memory))
         return marginals, emitted
